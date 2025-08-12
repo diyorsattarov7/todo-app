@@ -19,6 +19,45 @@ namespace mysql = boost::mysql;
 
 static std::string env(const char *k, const char *d) { if (const char *v = std::getenv(k)) return v; return d; }
 
+static bool fv_to_bool(mysql::field_view f)
+{
+    using kind = mysql::field_kind;
+    switch (f.kind())
+    {
+        case kind::int64:  return f.get_int64() != 0;
+        case kind::uint64: return f.get_uint64() != 0;
+        case kind::string: return (f.get_string() == "1" || f.get_string() == "true");
+        default:           return false;
+    }
+}
+
+static long long fv_to_i64(mysql::field_view f)
+{
+    using kind = mysql::field_kind;
+    switch (f.kind())
+    {
+        case kind::int64:  return f.get_int64();
+        case kind::uint64: return static_cast<long long>(f.get_uint64());
+        case kind::string: return std::stoll(std::string(f.get_string()));
+        default:           throw std::runtime_error("numeric field has incompatible type");
+    }
+}
+
+static std::string fv_to_string(mysql::field_view f)
+{
+    using kind = mysql::field_kind;
+    switch (f.kind())
+    {
+        case kind::string:  return std::string(f.get_string());
+        case kind::int64:   return std::to_string(f.get_int64());
+        case kind::uint64:  return std::to_string(f.get_uint64());
+        case kind::float_:  return std::to_string(f.get_float());
+        case kind::double_: return std::to_string(f.get_double());
+        case kind::null:    return std::string{};
+        default:            return std::string{};
+    }
+}
+
 struct app_ctx
 {
     net::io_context         &ioc;
