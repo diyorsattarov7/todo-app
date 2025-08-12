@@ -10,6 +10,8 @@
 #include <boost/mysql/handshake_params.hpp>
 #include <boost/mysql/tcp.hpp>
 
+#include <iostream>
+
 namespace net   = boost::asio;
 namespace beast = boost::beast;
 namespace http  = beast::http;
@@ -161,6 +163,39 @@ http::message_generator handle_request(app_ctx& ctx,
 
     return make_text(ver, ka, 404, "Not found", origin);
 }
+
+static void fail(beast::error_code ec, const char* what)
+{
+    std::cerr << what << ": " << ec.message() << "\n";
+}
+
+static void do_session(tcp::socket raw_socket, std::shared_ptr<app_ctx> ctx)
+{
+    beast::tcp_stream stream(std::move(raw_socket));
+    beast::flat_buffer buffer;
+    beast::error_code ec;
+
+    for (;;)
+    {
+        stream.expires_after(std::chrono::seconds(30));
+
+        http::request<http::string_body> req;
+        http::read(stream, buffer, req, ec);
+        if (ec == http::error::end_of_stream) break;
+        if (ec) { fail(ec, "read"); break; }
+
+        auto msg = handle_request(*ctx, std::move(req));
+        const bool keep_alive = msg.keep_alive();
+
+        beast::write(stream, std::move(msg), ec);
+        if (ec) { fail(ec, "write"); break; }
+
+        if (!keep_alive) break;
+    }
+
+    stream.socket().shutdown(tcp::socket::shutdown_send, ec);
+}
+
 
 int main()
 {
