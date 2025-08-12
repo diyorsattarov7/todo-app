@@ -138,6 +138,30 @@ static http::response<http::string_body> make_text(unsigned ver, bool ka, int co
     return res;
 }
 
+template <class Body, class Alloc>
+http::message_generator handle_request(app_ctx& ctx,
+                                       http::request<Body, http::basic_fields<Alloc>>&& req)
+{
+    const unsigned ver = req.version();
+    const bool     ka  = req.keep_alive();
+    const auto&    origin = ctx.cors_origin;
+    const beast::string_view target = req.target();
+
+    if (req.method() == http::verb::options)
+    {
+        http::response<http::string_body> res{http::status::ok, ver};
+        res.keep_alive(ka);
+        add_cors(res, origin);
+        res.prepare_payload();
+        return res;
+    }
+
+    if (req.method() == http::verb::get && target == "/healthz")
+        return make_json(ver, ka, 200, json::object{{"status","ok"}}, origin);
+
+    return make_text(ver, ka, 404, "Not found", origin);
+}
+
 int main()
 {
     return 0;
