@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en" x-data="app()" x-init="init()">
+  <head>
+    <meta charset="utf-8" />
+    <title>todo-app</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 2rem; }
+      button { padding: .5rem .8rem; margin-right: .5rem; }
+      pre { background: #111; color: #ddd; padding: 1rem; border-radius: .5rem; overflow:auto; }
+      .row { margin: .5rem 0; display:flex; align-items:center; gap:.5rem; }
+      .muted { color: #666; }
+      input { padding: .4rem .5rem; }
+      ul { padding-left: 1.2rem; }
+      li { margin: .25rem 0; }
+      .right { margin-left:auto; }
+    </style>
+  </head>
+  <body>
+    <h1>todo-app</h1>
+
+    <div class="row muted">
+      API Base: <code x-text="apiBase"></code>
+    </div>
+
+    <div class="row">
+      <button @click="ping('/healthz')">Ping /healthz</button>
+      <button @click="ping('/db/healthz')">Ping /db/healthz</button>
+      <button class="right" @click="loadTodos()">Reload Todos</button>
+    </div>
+
+    <hr />
+    <h2>Todos <span class="muted" x-text="`(${todos.length})`"></span></h2>
+
+    <div class="row">
+      <input placeholder="New todo title" x-model="newTitle" @keydown.enter.prevent="createTodo()" />
+      <button @click="createTodo()" :disabled="!newTitle.trim()">Add</button>
+    </div>
+
+    <ul>
+      <template x-for="t in todos" :key="t.id">
+        <li>
+          <input type="checkbox" :checked="t.done" @change="toggleTodo(t)" />
+          <span :style="t.done ? 'text-decoration: line-through; color:#666' : ''"
+                x-text="`#${t.id} ${t.title}`"></span>
+          <button @click="deleteTodo(t)" style="margin-left:.5rem">Delete</button>
+        </li>
+      </template>
+    </ul>
+
+    <h3>Last Response</h3>
+    <pre x-text="lastResponse || '(none yet)'"></pre>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
