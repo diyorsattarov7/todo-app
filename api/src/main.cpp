@@ -11,6 +11,7 @@
 #include <boost/mysql/tcp.hpp>
 
 #include <iostream>
+#include <thread>
 
 namespace net   = boost::asio;
 namespace beast = boost::beast;
@@ -196,8 +197,40 @@ static void do_session(tcp::socket raw_socket, std::shared_ptr<app_ctx> ctx)
     stream.socket().shutdown(tcp::socket::shutdown_send, ec);
 }
 
-
 int main()
 {
-    return 0;
+    try
+    {
+        const std::string bind_addr   = env("BIND_ADDR", "0.0.0.0");
+        const int         api_port    = std::stoi(env("API_PORT", "8080"));
+        const std::string db_host     = env("DB_HOST", "db");
+        const std::string db_port     = env("DB_PORT", "3306");
+        const std::string db_name     = env("DB_NAME", "appdb");
+        const std::string db_user     = env("DB_USER", "appuser");
+        const std::string db_pass     = env("DB_PASS", "apppass");
+        const std::string cors_origin = env("CORS_ORIGIN", "*");
+
+        net::io_context ioc{1};
+        auto ctx = std::make_shared<app_ctx>(ioc, db_host, db_port, db_user, db_pass, db_name, cors_origin);
+
+        try { ctx->ensure_db(); ctx->prepare_all(); }
+        catch (const std::exception& e) { std::cerr << "Warm init warning: " << e.what() << "\n"; }
+
+        tcp::acceptor acceptor{ioc, {net::ip::make_address(bind_addr), static_cast<unsigned short>(api_port)}};
+        acceptor.set_option(net::socket_base::reuse_address(true));
+
+        std::cout << "API listening on " << bind_addr << ":" << api_port << std::endl;
+
+        for (;;)
+        {
+            tcp::socket socket{ioc};
+            acceptor.accept(socket);
+            std::thread{do_session, std::move(socket), ctx}.detach();
+        }
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << "Fatal: " << e.what() << "\n";
+        return 1;
+    }
 }
