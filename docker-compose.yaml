@@ -1,0 +1,47 @@
+version: "3.9"
+services:
+  db:
+    image: mysql:8.4
+    ports:
+      - "${MYSQL_PORT}:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - dbdata:/var/lib/mysql
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u${MYSQL_USER} -p${MYSQL_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  api:
+    build: ./api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      API_PORT: ${API_PORT}
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: ${MYSQL_DATABASE}
+      DB_USER: ${MYSQL_USER}
+      DB_PASS: ${MYSQL_PASSWORD}
+    ports:
+      - "${API_PORT}:${API_PORT}"
+  client:
+    image: nginx:stable-alpine
+    depends_on:
+      - api
+    environment:
+      API_BASE: "http://localhost:${API_PORT}"
+    ports:
+      - "5173:80"
+    volumes:
+      - ./client:/usr/share/nginx/html:ro
+
+volumes:
+  dbdata:
