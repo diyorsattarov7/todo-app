@@ -1,7 +1,7 @@
 version: "3.9"
 services:
   db:
-    image: mysql:8.4
+    image: mariadb:11
     ports:
       - "${MYSQL_PORT}:3306"
     environment:
@@ -13,7 +13,7 @@ services:
       - dbdata:/var/lib/mysql
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u${MYSQL_USER} -p${MYSQL_PASSWORD} --silent"]
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 5s
       timeout: 3s
       retries: 30
