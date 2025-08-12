@@ -2,7 +2,7 @@
 
 Tiny full-stack TODO app:
 
-* **DB:** MySQL 8 (via Docker)
+* **DB:** MariaDB (via Docker)
 * **API:** C++ (Boost.Beast + Boost.MySQL)
 * **Client:** Static HTML + Alpine.js (served by Nginx)
 
