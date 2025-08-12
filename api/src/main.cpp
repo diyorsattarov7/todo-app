@@ -109,6 +109,35 @@ struct app_ctx
     }
 };
 
+static void add_cors(http::response<http::string_body>& res, const std::string& origin)
+{
+    res.set(http::field::access_control_allow_origin, origin);
+    res.set(http::field::access_control_allow_methods, "GET, POST, PUT, DELETE, OPTIONS");
+    res.set(http::field::access_control_allow_headers, "Content-Type, Accept");
+}
+static http::response<http::string_body> make_json(unsigned ver, bool ka, int code, const json::value& body, const std::string& origin)
+{
+    http::response<http::string_body> res{http::status(code), ver};
+    res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+    res.set(http::field::content_type, "application/json");
+    res.keep_alive(ka);
+    res.body() = json::serialize(body);
+    add_cors(res, origin);
+    res.prepare_payload();
+    return res;
+}
+static http::response<http::string_body> make_text(unsigned ver, bool ka, int code, const std::string& body, const std::string& origin)
+{
+    http::response<http::string_body> res{http::status(code), ver};
+    res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+    res.set(http::field::content_type, "text/plain; charset=utf-8");
+    res.keep_alive(ka);
+    res.body() = body;
+    add_cors(res, origin);
+    res.prepare_payload();
+    return res;
+}
+
 int main()
 {
     return 0;
